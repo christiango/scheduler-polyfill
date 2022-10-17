@@ -1,9 +1,10 @@
 {
-  "name": "scheduler-polyfill",
+  "name": "@christiango/scheduler-polyfill",
   "version": "1.0.0",
   "description": "Polyfill of self.scheduler API",
-  "main": "./dist/scheduler-polyfill.js",
-  "module": "./dist/scheduler-polyfill.js",
+  "main": "./src/scheduler.js",
+  "module": "./src/scheduler.js",
+  "types": "./src/scheduler.d.ts",
   "directories": {
     "doc": "docs"
   },
@@ -11,17 +12,16 @@
     "dist"
   ],
   "scripts": {
-    "build": "microbundle --raw -f iife src/polyfill.js",
     "lint": "eslint src test",
     "test": "karma start --single-run --browsers ChromeHeadless karma.conf.js"
   },
-  "homepage": "https://github.com/GoogleChromeLabs/scheduler-polyfill",
+  "homepage": "https://github.com/@christiango/scheduler-polyfill",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/GoogleChromeLabs/scheduler-polyfill.git"
+    "url": "git+https://github.com/@christiango/scheduler-polyfill.git"
   },
   "bugs": {
-    "url": "https://github.com/GoogleChromeLabs/scheduler-polyfill/issues"
+    "url": "https://github.com/@christiango/scheduler-polyfill/issues"
   },
   "browserslist": [
     "supports es6-module"
@@ -43,7 +43,6 @@
     "karma-chai": "^0.1.0",
     "karma-chrome-launcher": "^3.1.0",
     "karma-mocha": "^2.0.1",
-    "microbundle": "^0.14.1",
     "mocha": "^8.2.1"
   },
   "eslintConfig": {
