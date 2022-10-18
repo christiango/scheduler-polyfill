@@ -1,6 +1,6 @@
 {
   "name": "@christiango/scheduler-polyfill",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Polyfill of self.scheduler API",
   "main": "./src/index.js",
   "module": "./src/index.js",
