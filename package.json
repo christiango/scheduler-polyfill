@@ -2,9 +2,10 @@
   "name": "@christiango/scheduler-polyfill",
   "version": "1.0.1",
   "description": "Polyfill of self.scheduler API",
-  "main": "./src/scheduler.js",
-  "module": "./src/scheduler.js",
-  "types": "./src/scheduler.d.ts",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "sideEffects": false,
   "directories": {
     "doc": "docs"
   },
