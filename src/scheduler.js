@@ -133,7 +133,7 @@ class Scheduler {
       abortCallback: null,
 
       onTaskCompleted: function() {
-        if (!this.options.signal || this.abortCallback) return;
+        if (!this.options.signal || !this.abortCallback) return;
         this.options.signal.removeEventListener('abort', this.abortCallback);
         this.abortCallback = null;
       },
@@ -147,7 +147,7 @@ class Scheduler {
         }
         this.options.signal.removeEventListener('abort', this.abortCallback);
         this.abortCallback = null;
-        this.reject(new DOMException('The task was aborted.', 'AbortError'));
+        this.reject(this.options.signal.reason);
       },
 
       isAborted: function() {
@@ -175,7 +175,7 @@ class Scheduler {
     const signal = task.options.signal;
     if (signal) {
       if (signal.aborted) {
-        task.reject(new DOMException('The task was aborted.', 'AbortError'));
+        task.reject(signal.reason);
         return;
       }
 
