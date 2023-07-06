@@ -38,6 +38,7 @@ export declare class Scheduler {
 }
 
 export declare class TaskController extends AbortController {
+  constructor(init?: { priority?: TaskPriority});
   readonly signal: TaskSignal;
   setPriority: (priority: TaskPriority) => void;
 }
