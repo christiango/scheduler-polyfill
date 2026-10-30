@@ -1,2 +1,6 @@
-export { Scheduler } from './scheduler';
-export { TaskController } from './task-controller';
+export {Scheduler} from './scheduler.js';
+export {
+  TaskController,
+  TaskSignal,
+  TaskPriorityChangeEvent,
+} from './task-controller.js';

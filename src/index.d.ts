@@ -10,8 +10,21 @@ export declare type TaskPriority =
   | "background";
 
 
-export interface TaskSignal extends AbortSignal {
+export declare class TaskSignal extends AbortSignal {
+    private constructor();
     readonly priority: TaskPriority;
+    onprioritychange:
+      | null
+      | ((this: TaskSignal, event: TaskPriorityChangeEvent) => void);
+}
+
+export interface TaskPriorityChangeEventInit extends EventInit {
+  previousPriority: TaskPriority;
+}
+
+export declare class TaskPriorityChangeEvent extends Event {
+  constructor(type: string, init: TaskPriorityChangeEventInit);
+  readonly previousPriority: TaskPriority;
 }
 
 export interface PostTaskOptions {
@@ -31,6 +44,7 @@ export interface PostTaskOptions {
 }
 
 export declare class Scheduler {
+  yield(): Promise<void>;
   postTask<ReturnValue>(
     callback: () => ReturnValue | Promise<ReturnValue>,
     options?: PostTaskOptions

@@ -40,9 +40,9 @@ class PostMessageCallbackMananger {
 
     /**
      * @private
-     * @const {!Object<number, function(): undefined>}
+     * @const {!Map<number, function(): undefined>}
      */
-    this.messages_ = {};
+    this.messages_ = new Map();
 
     /**
      * @private
@@ -57,12 +57,18 @@ class PostMessageCallbackMananger {
    * @param {function(): undefined} callback
    * @return {number} A handle that can used for cancellation.
    */
-  queueCallback(callback) {
+  queueCallback_(callback) {
     // We support multiple pending postMessage callbacks by associating a handle
     // with each message, which is used to look up the callback when the message
     // is received.
     const handle = this.nextMessageHandle_++;
-    this.messages_[handle] = callback;
+    // Some runtimes expose port references that keep the event loop alive.
+    // Keep the receiver referenced while callbacks are pending.
+    if (this.messages_.size === 0 &&
+        typeof this.channel_.port1.ref === 'function') {
+      this.channel_.port1.ref();
+    }
+    this.messages_.set(handle, callback);
     this.sendPort_.postMessage(handle);
     return handle;
   }
@@ -70,8 +76,12 @@ class PostMessageCallbackMananger {
   /**
    * @param {number} handle The handle returned when the callback was queued.
    */
-  cancelCallback(handle) {
-    delete this.messages_[handle];
+  cancelCallback_(handle) {
+    if (!this.messages_.delete(handle)) return;
+    if (this.messages_.size === 0 &&
+        typeof this.channel_.port1.unref === 'function') {
+      this.channel_.port1.unref();
+    }
   }
 
   /**
@@ -82,9 +92,10 @@ class PostMessageCallbackMananger {
   onMessageReceived_(e) {
     const handle = e.data;
     // The handle will have been removed if the callback was canceled.
-    if (!(handle in this.messages_)) return;
-    const callback = this.messages_[handle];
-    delete this.messages_[handle];
+    const callback = this.messages_.get(handle);
+    if (!callback) return;
+    // Release before invoking user code, which may throw or queue more work.
+    this.cancelCallback_(handle);
     callback();
   }
 }
@@ -158,6 +169,14 @@ class HostCallback {
   }
 
   /**
+   * Returns true iff this task was scheduled with MessageChannel.
+   * @return {boolean}
+   */
+  isMessageChannelCallback_() {
+    return this.callbackType_ === CallbackType.POST_MESSAGE;
+  }
+
+  /**
    * Cancel the host callback, and if possible, cancel the underlying API call.
    */
   cancel() {
@@ -172,7 +191,7 @@ class HostCallback {
         clearTimeout(this.handle_);
         break;
       case CallbackType.POST_MESSAGE:
-        getPostMessageCallbackManager().cancelCallback(this.handle_);
+        getPostMessageCallbackManager().cancelCallback_(this.handle_);
         break;
       default:
         throw new TypeError('Unknown CallbackType');
@@ -191,8 +210,7 @@ class HostCallback {
     // For the delay case, our only option is setTimeout. This gets queued at
     // the appropriate priority when the callback runs. If the delay <= 0 and
     // MessageChannel is available, we use postMessage below.
-    if ((delay && delay > 0) || typeof MessageChannel !== 'function') {
-      if (!delay) delay = 0;
+    if (delay && delay > 0) {
       this.callbackType_ = CallbackType.SET_TIMEOUT;
       this.handle_ = setTimeout(() => {
         this.runCallback_();
@@ -208,19 +226,31 @@ class HostCallback {
 
     if (priority === 'background' &&
         typeof requestIdleCallback === 'function') {
+      this.callbackType_ = CallbackType.REQUEST_IDLE_CALLBACK;
       this.handle_ = requestIdleCallback(() => {
         this.runCallback_();
       });
-      this.callbackType_ = CallbackType.REQUEST_IDLE_CALLBACK;
-    } else {
+      return;
+    }
+
+    // Use MessageChannel if avaliable.
+    if (typeof MessageChannel === 'function') {
+      this.callbackType_ = CallbackType.POST_MESSAGE;
       // TODO: Consider using setTimeout in the background so tasks are
       // throttled. One caveat here is that requestIdleCallback may not be
       // throttled.
-      this.handle_ = getPostMessageCallbackManager().queueCallback(() => {
+      this.handle_ = getPostMessageCallbackManager().queueCallback_(() => {
         this.runCallback_();
       });
-      this.callbackType_ = CallbackType.POST_MESSAGE;
+      return;
     }
+
+    // Some JS environments may not support MessageChannel.
+    // This makes setTimeout the only option.
+    this.callbackType_ = CallbackType.SET_TIMEOUT;
+    this.handle_ = setTimeout(() => {
+      this.runCallback_();
+    });
   }
 
   /** Run the associated callback. */
